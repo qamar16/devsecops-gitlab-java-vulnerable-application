@@ -1,27 +1,41 @@
 name: Snyk CI/CD Integration
+
 on:
   push:
     branches:
-      - main   # Analyse à chaque push sur la branche "main"
+      - main  # Exécute les tests sur les commits poussés à la branche "main"
   pull_request:
     branches:
-      - main   # Analyse pour chaque pull request sur "main"
+      - main  # Exécute les tests sur les pull requests vers la branche "main"
 
 jobs:
   snyk:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    # Étape 1 : Checkout du dépôt
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Java
-        uses: actions/setup-java@v2
-        with:
-          java-version: '11'  # Assurez-vous que la version Java correspond à votre projet
+    # Étape 2 : Configuration de Java
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'       # Spécifiez la version de Java (par ex., 8, 11, 17)
+        distribution: 'temurin'  # Distribution de Java, comme Temurin (anciennement AdoptOpenJDK)
 
-      - name: Run Snyk test
-        uses: snyk/actions/setup@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: mvn snyk:test --all-projects
+    # Étape 3 : Installer Snyk CLI
+    - name: Install Snyk CLI
+      run: npm install -g snyk
+
+    # Étape 4 : Exécuter les tests Snyk
+    - name: Run Snyk test
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Votre jeton API Snyk (stocké comme secret GitHub)
+      run: snyk test --all-projects --json > snyk-report.json
+
+    # Étape 5 : Exécuter Snyk Monitor
+    - name: Run Snyk monitor
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Votre jeton API Snyk
+      run: snyk monitor
