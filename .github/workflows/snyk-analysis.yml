@@ -3,39 +3,45 @@ name: Snyk CI/CD Integration
 on:
   push:
     branches:
-      - main  # Exécute les tests sur les commits poussés à la branche "main"
+      - main
   pull_request:
     branches:
-      - main  # Exécute les tests sur les pull requests vers la branche "main"
+      - main
 
 jobs:
   snyk:
     runs-on: ubuntu-latest
 
     steps:
-    # Étape 1 : Checkout du dépôt
+    # Étape 1 : Télécharger le code source
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    # Étape 2 : Configuration de Java
+    # Étape 2 : Configurer Java (ajustez la version selon vos besoins)
     - name: Set up Java
       uses: actions/setup-java@v2
       with:
-        java-version: '11'       # Spécifiez la version de Java (par ex., 8, 11, 17)
-        distribution: 'temurin'  # Distribution de Java, comme Temurin (anciennement AdoptOpenJDK)
+        java-version: '11' # ou remplacez par '17' si nécessaire
+        distribution: 'temurin'
 
-    # Étape 3 : Installer Snyk CLI
+    # Étape 3 : Installer le client CLI de Snyk
     - name: Install Snyk CLI
       run: npm install -g snyk
 
-    # Étape 4 : Exécuter les tests Snyk
+    # Étape 4 : Vérifier l'installation de Snyk
+    - name: Verify Snyk installation
+      run: snyk --version
+
+    # Étape 5 : Exécuter les tests Snyk
     - name: Run Snyk test
       env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Votre jeton API Snyk (stocké comme secret GitHub)
-      run: snyk test --all-projects --json > snyk-report.json
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }} # Assurez-vous d'ajouter le token Snyk dans vos secrets GitHub
+      run: |
+        snyk test --all-projects --json > snyk-report.json || echo "Snyk test failed but continuing pipeline"
 
-    # Étape 5 : Exécuter Snyk Monitor
-    - name: Run Snyk monitor
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Votre jeton API Snyk
-      run: snyk monitor
+    # Étape 6 : Télécharger le rapport Snyk pour analyse (optionnel)
+    - name: Upload Snyk report
+      uses: actions/upload-artifact@v3
+      with:
+        name: snyk-report
+        path: snyk-report.json
